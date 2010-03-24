@@ -1,0 +1,12 @@
+This is a mirror of http://www.vim.org/scripts/script.php?script_id=3027
+
+This is a filetype plugin for editing grsecurity poilcy file, here is the short list of features:
+* search for a role, moving to a role, moving to previous/next role
+* search for a subject in a given role, list all subjects of a role in alphabetical order
+* search for an object with given flags (and without some other flags)
+* search for subjects with learning mode set
+
+* reload the policy file and authenticate to admin role
+* list grsecurity messages via dmesg (from the last time that RBAC system was (re)loaded
+
+You can also find grsecutiry syntax file (it is not included here) among vim scripts.

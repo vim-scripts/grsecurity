@@ -1,0 +1,258 @@
+			   *grsecurity-ftplugin* 
+			Filetype Plugin for maintaining
+			  grsecurity policy files
+			    by Marcin Szamotulski
+		-------------------------------------------------
+
+To install:
+>
+ "  	(1) copy this file to $HOME/.vim/ftplugin
+ "	(2) put in your vimrc file
+ " 		au BufRead /etc/grsec/policy setl filetype=grsecurity
+<
+there is a syntax file for /etc/grsec/policy file written by Jochen Bartl: 
+http://verbosemo.de/~lobo/files/grsecurity.vim
+
+Please note that all commands use <f-agrs> (see :h <f-args>).
+
+In the status line you will see the current ROLE and SUBJECT ( returned by the
+function Echo_Role_Subject() mapped to \e).
+
+A good vim command to know is '@:' which repeats the last command (for example
+to use with searching commands supplied). 
+
+Here is a list of functions (commands) and their short description:
+(for your convienience help tags contain the function name and the command
+name so typing ':h grsec-search <CTRL-d>' you will get list of function which
+searches, and the command name. Names of functions are rather self
+descriptive.
+
+You may want to allow 'gvim' to speak to '/dev/grsec'. You can do that adding
+'a' subject flag to 'gvim' in an administrative role. You can also add 's'
+subject flag to '/etc/grsec' in 'gvim's subject. You won't get errors
+when 'gvim' was not able to read the policy file (for example while reloading
+policy and not being in a special role.)
+
+SEARCHING							*grsec-search*
+======================================================================
+								*grsec-Search_for_Subject-S*
+Search_for_Subject(pattern [, role]) command :S 
+			Search for subject, if the optional argument [role] is
+			specified, restrict to this role.
+							
+								*grsec_Search_in_Subject-SS*
+Search_in_Subject(pattern [, subject, role]) command :SS
+			Search in the current subject for the given pattern.
+			If only [subject] is given it searches in the current
+			role for the subject. If both are given first finds
+			the [subject] in the given [role]. (if hit bottom of
+			the subject, continues at top)
+
+			The completion is set for the [role] argument.
+						    
+								*grsec-Search_in_Role-SR*
+Search_in_Role(pattern [, role]) command :SR
+			Search for a pattern in the role [role] (if hit bottom
+			of a role, continue at top). If [role] is not supplied
+			searching in the current role.
+								*grsec-Search_Object-SO*
+Search_Object(pattern [, flag, !flags])	command :SO	
+			Search for an object matching pattern which flags
+			contains the flags in the second argument and do not
+			contains the flags in the third argument. The second
+			argument can be equal to 'any' (or 'all') is one wants
+			to match for any flag but some flags.
+								*grsec-Search_i_Flag-Si*
+Search_i_Flag()		command :Si		
+			Search for 'i' subject flag
+								*grsec-Search_for_Role-R*
+Search_for_Role() 	command :R		
+			Search for a role, has custom completion set which
+			returns names of roles.
+
+MOVING								*grsec-moving*
+======================================================================
+								*grsec-Top_of_Subject-TS*
+Top_of_Subject()	command :TS		Go to the top of current subject
+			map {
+			    					*grsec-Bottom_of_Subject-BT*
+Bottom_of_Subject()	command :BS		Go to the bottom of current subject
+			map }
+								*grsec-Next_Subject-NS*
+Next_Subject()		command :NS		Go to the next subject
+			map ]
+								*grsec-Previous_Subject-PS*
+Previous_Subject() 	command :PS		Go to the previous subject
+			map [
+								*grsec-Next_Role-NR*	
+Next_Role()		command :NR		Go to the next role
+			map )
+								*grsec-Prevous_Role-PR*
+Previous_Role()		command :PR		go to the top of current or
+			map (			previous role (if you're on top)
+			
+
+Some function have special arguments which are not explained and not important for the end user.
+
+DMESG								*grsec-show-dmesg*
+======================================================================
+Show_Dmesg()		command :Dmesg				*grsec-Show_Dmesg-Dmesg*
+
+    This function shows the last grsec warnings (beginning from the last time
+    grsec was (re)loaded). It uses error list so you can use :cc, :cl, :copen
+    commands. If you reload grsec, then run :Dmesg to reload the error file.
+    Previous logs are still accessible using Show_Previous_Logs()
+    Show_Next_Logs(). You can reload grsec from within gvim, if you allow gvim
+    to talk to /dev/grsec (add the a flag to gvim. Additionally, you can add s
+    object flag to /etc/grsec for gvim, so that denied access of gvim to
+    '/etc/grsec' won't be logged.  The stack of Previous Logs contain only
+    different logs, if you run :Dmesg twice and the logs do not differ only
+    one log file is remembered. We use tempname() function to obtain a name for
+    temporary file in which the logs are stored, in some cases there might be
+    SECURITY ISSUES with this so YOU ARE WARNED. 
+    
+    Please read vim documentation about security issues concerning temporary
+    files.
+
+Show_Previous_Logs	command :PL				*grsec-Show_Previous_Logs-PL*
+Show_Next_Logs		command :NL				*grsec-Show_Next_Logs-NL*
+						both described above.
+The variable b:logs_dict is a dictionary of the form { number : tempfile },
+where the tempfile stores the dmesg output.
+
+Log_Nr(number)		command :LogNR				*grsec-Log_Nr-LogNr*
+	Use log whith number (error file is set according to values of
+	b:logs_dict).
+
+
+Remove_Logs()		command :RemoveLogs			*grsec-Remove_Logs*
+    This function removes all temporary files which stores the dmesg logs.
+
+Save_Log(name)		command :SaveLog			*grsec-Save_Log*
+    Save the current logs under the 'name'.
+
+command :ListRoles						*grsec-ListRoles*
+    This command list all the roles.
+	
+======================================================================
+Examples							*grsec-examples*
+
+:SO \/var\/spool\S* rwca
+	search for all objects which path begins with \/var\/spool and the
+	flag contain r w c and a
+:SO \S*\/share\/\S*\/bin\/\S* rx
+	search for all binaries whose full path contains the directory share
+	and which are readable and executable
+
+:SO .*\d\+\.\%(\d\|\.\)\+
+	search for objects which have a version number (for example: 
+	/lib64/libc-2.10.1.so will match)
+
+:S slocate\s*[oAd]\+\s*\%($\|#\)
+	search for subjects of slocate program whose object flags are at most
+	oAd. This is the way how :SO treats the flags.
+
+:S \/\  root
+	search for the subject '\ ' in the role root, (note that between '\/\'
+	and 'root' there are two white spaces.
+
+
+======================================================================
+Subject Modes							*grsec-Subject_Modes*
+
+h - This process is hidden and only viewable by processes with the v mode.
+v - This process can view hidden processes.
+p - This process is protected; it can only be killed by processes with the k
+     mode, or by processes within the same subject.
+k - This process can kill protected processes.
+l - Enables learning mode for this process.
+d - Protect the /proc/¡pid¿/fd and /proc/¡pid¿/mem entries for processes in
+     this subject.
+b - Enable process accounting for processes in this subject.
+O - Override the additional mmap() and ptrace() restrictions for this subject.
+t - Allow this process to ptrace any process (use with caution)
+r - Relax ptrace restrictions (allows process to ptrace processes other than its
+     own descendants)
+A - Protect the shared memory of this subject. No other processes but pro-
+     cesses contained within this subject may access the shared memory of this
+     subject.
+K - When processes belonging to this subject generate an alert, kill the process
+C - When processes belonging to this subject generate an alert, kill the process
+     and all processes belonging to the IP of the attacker (if there was an IP
+     attached to the process).
+T - Ensures this process can never execute any trojaned code.
+o - Override ACL inheritance for this process.
+i - Enable inheritance-based learning for this subject, causing all accesses of
+     this subject and anything it executes to be placed in this subject, and
+     inheritance ﬂags added to executable objects in this subject. 
+O - Disable ”writable library” restrictions for this task
+a - Allow this process to talk to the /dev/grsec device
+
+======================================================================
+Object Modes							*grsec-Object_Modes*
+
+h - This object is hidden.
+r - This object can be opened for reading.
+w - This object can be opened for writing or appending.
+x - This object can be executed (or mmap’d with PROT_EXEC into a task).
+a - This object can be opened for appending.
+c - Allow creation of the ﬁle/directory
+d - Allow deletion of the ﬁle/directory
+m - Allow creation of setuid/setgid
+     ﬁles/directories and modiﬁcation of ﬁles/directories to be setuid/setgid
+l - Allow a hardlink at this path (hardlinking requires at a minimum c and l
+     modes, and the target link cannot have any greater permission than the
+     source ﬁle)
+t - This object can be ptraced, but cannot modify the running task. This is
+     referred to as a ‘read-only ptrace’.
+p - Reject all ptraces to this object
+s - Logs will be suppressed for denied access to this object.
+i - This mode only applies to binaries. When the object is executed, it inherits
+     the ACL of the subject in which it was contained. 
+R - Audit successful reads to this object.
+W - Audit successful writes to this object.
+X - Audit successful execs of this object.
+A - Audit successful appends to this object.
+F - Audit successful ﬁnds of this object.
+I - Audit successful ACL inherits of this object.
+M - Audit the setuid/setgid creation/modiﬁcation
+C - Audit the creation
+D - Audit the deletion
+L - Audit link creation
+
+======================================================================
+Role Flags							*grsec-Role_Flags*
+
+A - This role is an administrative role, thus it has special privilege normal
+     roles do not have. In particular, this role bypasses the additional ptrace
+     restrictions
+N - Don’t require authentication for this role. To access the role, use
+     gradm -n <rolename>
+s - This role is a special role, meaning it does not belong to a user or group,
+     and does not require an enforced secure policy base to be included in the
+     ruleset.
+u - This role is a user role
+g - This role is a group role
+G - This role can use gradm to authenticate to the kernel A policy for gradm
+     will automatically be added to the role.
+T - Enable TPE for this role
+l - Enable learning for this role
+P - Use PAM authentication for this role.
+
+======================================================================
+Copy Rights							*grsec-copy-rights*
+
+>
+ " Copyright:    Copyright (C) 2010 Marcin Szamotulski Permission is hereby
+ "		granted to use and distribute this code, with or without
+ "		modifications, provided that this copyright notice is copied
+ "		with it. Like anything else that's free, this ftplugin
+ "		is provided *as is* and comes with no warranty of any kind,
+ "		either expressed or implied. By using this plugin, you agree
+ "		that in no event will the copyright holder be liable for any
+ "		damages resulting from the use of this software.
+ " 		This licence is valid for all files distributed with
+ " 		grsecurity ftplugin.
+<
+
+vim:tw=78:ts=8:ft=help:norl:
