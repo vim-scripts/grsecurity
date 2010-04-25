@@ -10,28 +10,40 @@ To install:
  "	(2) put in your vimrc file
  " 		au BufRead /etc/grsec/policy setl filetype=grsecurity
 <
-there is a syntax file for /etc/grsec/policy file written by Jochen Bartl: 
+there is a syntax file for /etc/grsec/policy written by Jochen Bartl: 
 http://verbosemo.de/~lobo/files/grsecurity.vim
 
 Please note that all commands use <f-agrs> (see :h <f-args>).
+Secondly, as for now some functions only works well with policy files in which
+subjects are enclosed with '{' '}', for example: 
+>
+ "            role default
+ "            subject / {
+ "                    /                               h
+ "                    -CAP_ALL
+ "                    connect disabled
+ "                    bind    disabled
+ "            }
+<
+
 
 In the status line you will see the current ROLE and SUBJECT ( returned by the
 function Echo_Role_Subject() mapped to \e).
 
 A good vim command to know is '@:' which repeats the last command (for example
-to use with searching commands supplied). 
+to use with the supplied searching command). 
 
 Here is a list of functions (commands) and their short description:
 (for your convienience help tags contain the function name and the command
-name so typing ':h grsec-search <CTRL-d>' you will get list of function which
-searches, and the command name. Names of functions are rather self
-descriptive.
+name so typing ':h grsec-search <CTRL-d>' you will get list of functions which
+do a search, and the associated command name. Names of functions are rather
+self descriptive.
 
 You may want to allow 'gvim' to speak to '/dev/grsec'. You can do that adding
-'a' subject flag to 'gvim' in an administrative role. You can also add 's'
-subject flag to '/etc/grsec' in 'gvim's subject. You won't get errors
-when 'gvim' was not able to read the policy file (for example while reloading
-policy and not being in a special role.)
+'a' subject flag to 'gvim' in an administrative role or root role. You can
+also add 's' subject flag to '/etc/grsec' in 'gvim's subject. You won't get
+errors when 'gvim' was not able to read the policy file (for example while
+reloading policy and not being in a special role.)
 
 SEARCHING							*grsec-search*
 ======================================================================
@@ -39,6 +51,11 @@ SEARCHING							*grsec-search*
 Search_for_Subject(pattern [, role]) command :S 
 			Search for subject, if the optional argument [role] is
 			specified, restrict to this role.
+
+                        The exact pattern that is to be searched is:
+>
+ "                    '^\s*subject\s.\{-}' . a:pattern
+<
 							
 								*grsec_Search_in_Subject-SS*
 Search_in_Subject(pattern [, subject, role]) command :SS
@@ -49,19 +66,34 @@ Search_in_Subject(pattern [, subject, role]) command :SS
 			the subject, continues at top)
 
 			The completion is set for the [role] argument.
-						    
+                        The exact pattern to be searched is not changed. 
+
 								*grsec-Search_in_Role-SR*
 Search_in_Role(pattern [, role]) command :SR
 			Search for a pattern in the role [role] (if hit bottom
 			of a role, continue at top). If [role] is not supplied
 			searching in the current role.
+                        The exact pattern to be searched is not changed. 
+
 								*grsec-Search_Object-SO*
-Search_Object(pattern [, flag, !flags])	command :SO	
+Search_for_Object(pattern [, flag, !flags])	command :SO	
 			Search for an object matching pattern which flags
 			contains the flags in the second argument and do not
 			contains the flags in the third argument. The second
 			argument can be equal to 'any' (or 'all') is one wants
 			to match for any flag but some flags.
+
+                        The exact pattern to be searched is: 
+>
+ "				^\s* a:pattern
+<
+			The lines which containes words: subject, role, bind,
+			connect, user_transition, group_transition, CAP_ are
+			skipped. 
+
+			If you want to search for a pattern, which ends with 
+			'xpdf' put as your pattern '.*xpdf\s' (note the space
+			'\s' at the end, and not '\>').
 								*grsec-Search_i_Flag-Si*
 Search_i_Flag()		command :Si		
 			Search for 'i' subject flag
@@ -69,6 +101,11 @@ Search_i_Flag()		command :Si
 Search_for_Role() 	command :R		
 			Search for a role, has custom completion set which
 			returns names of roles.
+                        The exact pattern that is to be searched is:
+>
+ "                      '^\s*\%(role\).\{-}' . a:what . '\>'
+<
+
 
 MOVING								*grsec-moving*
 ======================================================================
@@ -114,6 +151,7 @@ Show_Dmesg()		command :Dmesg				*grsec-Show_Dmesg-Dmesg*
     Please read vim documentation about security issues concerning temporary
     files.
 
+The following functions gives the same functionality as |:colder| and |:cnewer|:
 Show_Previous_Logs	command :PL				*grsec-Show_Previous_Logs-PL*
 Show_Next_Logs		command :NL				*grsec-Show_Next_Logs-NL*
 						both described above.

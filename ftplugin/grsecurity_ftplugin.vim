@@ -14,12 +14,7 @@
 " 		This licence is valid for all files distributed with
 " 		grsecurity ftplugin.
 "
-" ToDo: List_Subjects([role])
-" ToDo: Search_fo_Subject doesn't work where subject is not enclosed in { }. 
-" Done: variable (list) for lines which we do not want in the output of
-" the :Dmesg command.
-" ToDo: to write in doc file.
-" ToDo: completion should add subjects after the roles
+" ToDo: Search_of_Subject doesn't work where subject is not enclosed in { }. 
 "
 " to install this plugin: 
 "  	(1) copy this file to $HOME/.vim/ftplugin
@@ -56,7 +51,7 @@
 "          Previous_Role	command :PR
 "				map (
 "
-" Some function have special arguments which are not explained.
+" Some function have special arguments which are not explained see doc file.
 
 if !exists("g:gradm_learning_log_file")
     let g:gradm_learning_log_file='/etc/grsec/learning.log'
@@ -73,7 +68,8 @@ if !exists("g:ignore_grsec_logs")
 		\unauth of special role admin\|
 		\terminal being sniffed by IP:0\.0\.0\.0\|
 		\grsec: shutdown auth success for'
-" 		\ grsec: mount of'
+" 		\grsec: .* mount of
+" 		\grsec: .* unmount of'
 "
 endif
 
@@ -91,13 +87,11 @@ endfunction
 function! Search_i_Flag()
     let l:pattern='^\s*subject\s\+\/\%(\w\|\/\|\.\|-\)*\s\+\<[hvpkldbotrAKCToOa]\{-}i[hvpkldbotrAKCToOa]*\>'
     exe '/' . l:pattern	
-" 	call search(l:pattern,'cesw')
 endfunction
 
 function! Search_for_Role(what)
     let l:pattern='^\s*\%(role\).\{-}' . a:what . '\>'
     exe '/' . l:pattern
-" 	call search(l:pattern,'cesw')	
 endfunction
 
 function! Top_of_Subject(...)
@@ -357,7 +351,6 @@ function! Search_for_Object(object,...)
 		let l:a_flags=split(a:1,'\zs')
 		let l:any_flag=0
 	    else
-" 		let l:a_flags=[]
 		let l:any_flag=1
 	    endif
 	    let l:n_flags=[]
@@ -377,9 +370,13 @@ function! Search_for_Object(object,...)
 	while l:true
 	    
 	    keepjumps let l:s=search('^\s*' . a:object,'W')
-	    while getline('.') =~ 'connect\|bind\|subject\|role\|user_transition\|group_transition\|\%(+\|-\)\s*CAP_'
-		keepjumps let l:s=search('^\s*' . a:object,'')
-	    endwhile
+" 	    echomsg "DEBUG hit_bottom=" . l:hit_bottom
+" 	    echomsg "DEBUG search=" . l:s
+	    if l:s != 0
+		while getline('.') =~ 'connect\|bind\|subject\|role\|user_transition\|group_transition\|\%(+\|-\)\s*CAP_'
+		    keepjumps let l:s=search('^\s*' . a:object,'W')
+		endwhile
+	    endif
 
 	    if l:s == 0 && l:hit_bottom != 0
 		keepjumps call setpos('.',l:cpos)
@@ -390,7 +387,9 @@ function! Search_for_Object(object,...)
 
 		break
 	    endif
+
 	    if l:s == 0 && l:hit_bottom == 0 
+
 		let l:bpos=copy(l:cpos)
 		let l:bpos[1]=1
 		keepjumps call setpos('.',l:bpos)
@@ -400,13 +399,17 @@ function! Search_for_Object(object,...)
 		echoh None
 
 		let l:hit_bottom=1
+		"jump back to the begging of the loop
+		continue
 	    endif
 
+" 	    echomsg "DEBUG LINE " . line(".") 
 	    let l:line=getline(".")
 	    let l:flags_in_line=split(substitute(substitute(substitute(l:line,'#.*$','',''),'^\s\%(\w\|\/\|\.\|-\|?\|*\|\~\|:\|_\)*\s*','',''),'\s\+\%(#.*\|$\)','',''),'\zs')
-" 	    echomsg "DEBUG LINE " . line(".") . " " . l:line
-" 	    echomsg "DEBUG flags_in_line=" . string(l:flags_in_line)
+" 	    echomsg "DEBUG FLAGS IN LINE " string(l:flags_in_line)
 
+	    " l:not_matched=0 if the flags are matching 
+	    " l:not_matched=1 if the flags are not matching 
 	    let l:not_matched=0
 	    if l:any_flag == 0
 	    for l:f in l:a_flags 
@@ -415,18 +418,17 @@ function! Search_for_Object(object,...)
 		endif
 	    endfor
 	    endif
-" 	    echomsg "DEBUG A " . l:not_matched
-"
+
 	    for l:f in l:n_flags
 		if index(l:flags_in_line,l:f) != -1
 		    let l:not_matched=1
 		endif
 	    endfor
-" 	    echomsg "DEBUG B " . l:not_matched
 
 	    if l:not_matched == 0
+" 		echomsg "DEBUG FIN"
 		let l:true=0
-		" this is to add position to the jump list
+		" this is to add the position to the jump list
 		call setpos('.',getpos('.'))
 	    endif
 
@@ -622,6 +624,7 @@ endfunction
 " function! Remove(list,beg,end)
 "     let l:len=len(a:list)
 
+if !exists("*ListSubjects")
 function! ListSubjects(role)
     let l:policy=getbufline(bufname("%"),1,'$')
     let l:policy=s:filter(l:policy, '^\s*\%(role\|subject\)\s.*')
@@ -641,16 +644,20 @@ function! ListSubjects(role)
 	let l:line+=1
     endfor
 endfunction
+endif
 
-function! Reload()
+function! Reload(...)
     if !executable('gradm')
 	echohl WarnningMsg
 	echomsg "You are not previllage to use gradm"
 	echohl None
 	return
     endif
+    w
     !gradm -R
-    !gradm -a admin
+    if a:0 == 0
+	!gradm -a admin
+    endif
 endfunction
 
 function! Admin()
